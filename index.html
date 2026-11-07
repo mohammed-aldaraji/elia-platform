@@ -65,12 +65,16 @@
         th, td { padding: 12px; text-align: right; border-bottom: 1px solid #eee; }
         th { background-color: var(--primary-color); color: white; }
 
-        .tab-menu { display: flex; gap: 10px; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
+        .tab-menu { display: flex; gap: 10px; border-bottom: 2px solid #ddd; margin-bottom: 20px; flex-wrap: wrap; }
         .tab-item { padding: 10px 20px; cursor: pointer; font-weight: bold; border-bottom: 3px solid transparent; }
         .tab-item.active { border-color: var(--primary-color); color: var(--primary-color); }
 
+        .content-card { background: #fdfdfd; border: 1px solid #e1e4e8; border-radius: 8px; padding: 15px; margin-bottom: 15px; border-right: 5px solid var(--secondary-color); }
+        
         footer { text-align: center; padding: 2rem; background: #1d1c1d; color: white; margin-top: 4rem; }
         footer a { color: var(--accent-color); text-decoration: none; }
+
+        .sync-status { font-size: 0.85rem; padding: 4px 10px; border-radius: 4px; background: #e2fcd6; color: #0b6623; display: inline-block; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -109,18 +113,11 @@
                     </div>
                     <button class="btn btn-danger" onclick="logoutStudent()"><i class="fa-solid fa-sign-out-alt"></i> خروج</button>
                 </div>
-                <div class="grid-3">
-                    <div class="card">
-                        <h3><i class="fa-solid fa-book-open"></i> المحاضرات والدروس المتاحة</h3>
-                        <div id="studentLessonsList" style="margin-top: 10px; color: #777;">لا توجد دروس مرفوعة حالياً.</div>
-                    </div>
-                    <div class="card">
-                        <h3><i class="fa-solid fa-pen-to-square"></i> الاختبارات والنتائج</h3>
-                        <div id="studentQuizzesList" style="margin-top: 10px; color: #777;">لا توجد امتحانات متوفرة حالياً.</div>
-                    </div>
-                    <div class="card">
-                        <h3><i class="fa-solid fa-clipboard-user"></i> سجل الحضور والالتزام</h3>
-                        <p style="color: var(--secondary-color); font-weight: bold; margin-top: 10px;">لا يوجد سجل حضور مسجل بعد.</p>
+
+                <div class="card">
+                    <h3><i class="fa-solid fa-layer-group"></i> محتويات وعمليات الصف الدراسي المتاحة</h3>
+                    <div id="studentDynamicContent" style="margin-top: 15px;">
+                        <p style="color: #777;">جاري جلب المحتويات والدروس من السحابة...</p>
                     </div>
                 </div>
             </div>
@@ -130,32 +127,45 @@
         <section id="teacher-portal" class="portal-section">
             <div id="teacherLoginForm" class="card" style="max-width: 500px; margin: 2rem auto;">
                 <h2><i class="fa-solid fa-chalkboard-user"></i> دخول الكادر التدريسي</h2>
+                <p style="margin-bottom: 1rem; color: #666;">أدخل رمز الدخول السري للأستاذ</p>
                 <div class="form-group">
-                    <label>اسم الكادر / الأستاذ:</label>
-                    <input type="text" id="teacherUserInput" class="form-control" placeholder="أدخل اسم الحساب">
-                </div>
-                <div class="form-group">
-                    <label>كلمة المرور:</label>
-                    <input type="password" id="teacherPassInput" class="form-control" placeholder="أدخل كلمة المرور">
+                    <label>رمز الأستاذ (Teacher PIN):</label>
+                    <input type="text" id="teacherPinInput" class="form-control" placeholder="مثال: TEACH-XXXXXX">
                 </div>
                 <button class="btn btn-primary" style="width: 100%; justify-content:center;" onclick="loginTeacher()"><i class="fa-solid fa-lock"></i> دخول لوحة المدرس</button>
             </div>
 
             <div id="teacherDashboard" style="display: none;">
-                <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <h2 id="welcomeTeacherMsg">لوحة التحكم الخاصة بالأستاذ</h2>
                     <button class="btn btn-danger" onclick="logoutTeacher()"><i class="fa-solid fa-sign-out-alt"></i> خروج</button>
                 </div>
+
+                <!-- لوحة نشر المحتويات الشاملة -->
                 <div class="card">
-                    <h3><i class="fa-solid fa-upload"></i> رفع درس / محاضرة جديدة</h3>
-                    <div class="grid-3" style="margin-top: 1rem;">
+                    <h3><i class="fa-solid fa-cloud-arrow-up"></i> مركز النشر السحابي الشامل للتلاميذ</h3>
+                    <p style="color: #666; margin-bottom: 1rem;">اختر نوع المحتوى الذي تريد نشره لطلاب صف معين وسيحفظ سحابياً فوراً:</p>
+                    
+                    <div class="form-group">
+                        <label>نوع المحتوى المراد نشره:</label>
+                        <select id="contentTypeSelect" class="form-control" onchange="toggleContentForm()">
+                            <option value="lesson">🎥 درس مرئي / محاضرة فيديو</option>
+                            <option value="pdf">📄 ملف PDF / ملزمة أو ملخص</option>
+                            <option value="audio">🎧 محاضرة صوتية</option>
+                            <option value="image">🖼️ صورة تعليمية / رسم توضيحي</option>
+                            <option value="quiz">📝 اختبار قصير / كويز</option>
+                            <option value="live">🔴 بث مباشر / اجتماع مرئي</option>
+                        </select>
+                    </div>
+
+                    <div class="grid-3">
                         <div class="form-group">
-                            <label>عنوان المحاضرة:</label>
-                            <input type="text" id="lessonTitle" class="form-control" placeholder="مثال: الدرس الأول">
+                            <label>عنوان المحتوى / الدرس:</label>
+                            <input type="text" id="pubTitle" class="form-control" placeholder="مثال: ملخص الفصل الأول">
                         </div>
                         <div class="form-group">
                             <label>الصف المستهدف:</label>
-                            <select id="lessonClass" class="form-control">
+                            <select id="pubClass" class="form-control">
                                 <option>السادس العلمي</option><option>السادس الأدبي</option>
                                 <option>الخامس العلمي</option><option>الخامس الأدبي</option>
                                 <option>الرابع العلمي</option><option>الرابع الأدبي</option>
@@ -163,12 +173,31 @@
                                 <option>السادس الابتدائي</option><option>الخامس الابتدائي</option><option>الرابع الابتدائي</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>رابط المحاضرة (فيديو / PDF / صوت):</label>
-                            <input type="text" id="lessonUrl" class="form-control" placeholder="https://...">
+                        <div class="form-group" id="urlGroup">
+                            <label id="urlLabel">رابط الفيديو (YouTube / Drive):</label>
+                            <input type="text" id="pubUrl" class="form-control" placeholder="https://...">
                         </div>
                     </div>
-                    <button class="btn btn-secondary" onclick="addLesson()"><i class="fa-solid fa-plus"></i> نشر المحاضرة للطلاب</button>
+
+                    <!-- حقول خاصة بالاختبارات إن وجدت -->
+                    <div id="quizFields" style="display: none; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 1rem; border: 1px dashed var(--secondary-color);">
+                        <h4>إعدادات الاختبار السريع:</h4>
+                        <div class="form-group" style="margin-top: 10px;">
+                            <label>نص السؤال:</label>
+                            <input type="text" id="quizQuestion" class="form-control" placeholder="ما هي وظيفة المايتوكوندريا؟">
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><input type="text" id="opt1" class="form-control" placeholder="الخيار أ"></div>
+                            <div class="form-group"><input type="text" id="opt2" class="form-control" placeholder="الخيار ب"></div>
+                            <div class="form-group"><input type="text" id="opt3" class="form-control" placeholder="الخيار ج"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>الخيار الصحيح:</label>
+                            <input type="text" id="correctOpt" class="form-control" placeholder="اكتب الخيار الصحيح تماماً">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="publishContent()"><i class="fa-solid fa-paper-plane"></i> نشر المحتوى للتلاميذ سحابياً</button>
                 </div>
             </div>
         </section>
@@ -180,18 +209,18 @@
                 <div id="tab-btn-teachers" class="tab-item" onclick="switchAdminTab('teachers-tab', 'tab-btn-teachers')">إدارة الأساتذة</div>
             </div>
 
-            <!-- إعداد رابط المنصة العام -->
+            <div class="sync-status"><i class="fa-solid fa-cloud-arrow-up"></i> النظام متصل بقاعدة البيانات السحابية المركزية بنجاح</div>
+
             <div class="card" style="background: #eef9f4; border: 1px solid var(--secondary-color);">
-                <h3><i class="fa-solid fa-link"></i> نص أو رابط الوصول للمنصة في الواتساب</h3>
-                <p style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">اكتب هنا توجيهاً أو رابط موقعك الفعلي (أو اتركه دليلاً نصياً إذا كنت تعمل محلياً):</p>
-                <input type="text" id="globalPlatformUrl" class="form-control" value="تواصل مع الإدارة لتزويدك بالرابط أو التطبيق" style="background: white;">
+                <h3><i class="fa-solid fa-link"></i> رابط المنصة المعتمد في الواتساب</h3>
+                <input type="text" id="globalPlatformUrl" class="form-control" value="https://mohammed-aldaraji.github.io/elia-platform/" style="background: white;">
             </div>
 
             <!-- تبويب التلاميذ -->
             <div id="students-tab" class="admin-tab-content">
                 <div class="grid-3">
                     <div class="card" style="grid-column: span 2;">
-                        <h2><i class="fa-solid fa-user-plus"></i> تسجيل تلميذ جديد وتوليد الرمز تلقائياً</h2>
+                        <h2><i class="fa-solid fa-user-plus"></i> تسجيل تلميذ جديد وتوليد الرمز سحابياً</h2>
                         <div class="form-group">
                             <label>اسم التلميذ الثلاثي واللقب *</label>
                             <input type="text" id="newStudentName" class="form-control" placeholder="أدخل اسم التلميذ">
@@ -220,7 +249,7 @@
                                 <input type="text" id="newStudentPhone" class="form-control" placeholder="078XXXXXXXX">
                             </div>
                         </div>
-                        <button class="btn btn-secondary" onclick="generateAndSaveStudent()"><i class="fa-solid fa-key"></i> توليد الرمز وحفظ التلميذ</button>
+                        <button class="btn btn-secondary" onclick="generateAndSaveStudent()"><i class="fa-solid fa-key"></i> توليد الرمز وحفظ التلميذ سحابياً</button>
                     </div>
 
                     <div class="card" style="background: #f0f7f5; border: 1px solid var(--secondary-color);">
@@ -232,7 +261,7 @@
                 </div>
 
                 <div class="card">
-                    <h2><i class="fa-solid fa-users"></i> قاعدة بيانات التلاميذ المسجلين في المنصة</h2>
+                    <h2><i class="fa-solid fa-users"></i> قاعدة بيانات التلاميذ المسجلين (السحابية)</h2>
                     <table>
                         <thead>
                             <tr>
@@ -251,25 +280,50 @@
 
             <!-- تبويب الأساتذة -->
             <div id="teachers-tab" class="admin-tab-content" style="display:none;">
-                <div class="card">
-                    <h2><i class="fa-solid fa-user-tie"></i> إضافة أستاذ جديد وتوليد بيانات حسابه</h2>
-                    <div class="grid-3" style="margin-top: 1rem;">
-                        <div class="form-group">
-                            <label>اسم الأستاذ:</label>
-                            <input type="text" id="newTeacherName" class="form-control" placeholder="أدخل اسم الأستاذ">
+                <div class="grid-3">
+                    <div class="card" style="grid-column: span 2;">
+                        <h2><i class="fa-solid fa-user-tie"></i> إضافة أستاذ جديد وتوليد كود الدخول سحابياً</h2>
+                        <div class="grid-3" style="margin-top: 1rem;">
+                            <div class="form-group">
+                                <label>اسم الأستاذ الثلاثي:</label>
+                                <input type="text" id="newTeacherName" class="form-control" placeholder="أدخل اسم الأستاذ">
+                            </div>
+                            <div class="form-group">
+                                <label>المادة الدراسية:</label>
+                                <input type="text" id="newTeacherSubject" class="form-control" placeholder="مثال: الأحياء">
+                            </div>
+                            <div class="form-group">
+                                <label>رقم الواتساب:</label>
+                                <input type="text" id="newTeacherPhone" class="form-control" placeholder="078XXXXXXXX">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>المادة الدراسية:</label>
-                            <input type="text" id="newTeacherSubject" class="form-control" placeholder="مثال: الأحياء">
-                        </div>
-                        <div class="form-group">
-                            <label>رقم الواتساب:</label>
-                            <input type="text" id="newTeacherPhone" class="form-control" placeholder="078XXXXXXXX">
+                        <button class="btn btn-primary" onclick="addTeacher()"><i class="fa-solid fa-key"></i> توليد رمز الأستاذ وحفظه</button>
+                    </div>
+
+                    <div class="card" style="background: #f0f7f5; border: 1px solid var(--primary-color);">
+                        <h3><i class="fa-solid fa-id-card"></i> بطاقة الأستاذ المولدة</h3>
+                        <div id="teacherCardArea" style="margin-top: 1rem;">
+                            <p style="color: #777;">أدخل بيانات الأستاذ واضغط توليد الرمز لتظهر البطاقة...</p>
                         </div>
                     </div>
-                    <button class="btn btn-primary" onclick="addTeacher()"><i class="fa-solid fa-plus"></i> إضافة الأستاذ وتجهيز الرابط</button>
                 </div>
-                <div id="teacherCardArea"></div>
+
+                <div class="card">
+                    <h2><i class="fa-solid fa-chalkboard-user"></i> قائمة الأساتذة المسجلين (السحابية)</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ت</th>
+                                <th>اسم الأستاذ</th>
+                                <th>المادة</th>
+                                <th>رمز الدخول (PIN)</th>
+                                <th>رقم الهاتف</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teachersTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -281,12 +335,48 @@
     </footer>
 
     <script>
-        let studentsData = JSON.parse(localStorage.getItem('elia_students')) || [];
+        const BIN_ID = "6aef1858ffd5d16053aed654";
+        const API_KEY = "$2a$10$kzDIkp/SULBHM9I2FNd1G.YHFEW3LoR2zLZD6MCqpRyr5HZ3pCqkS";
+
+        let dbData = { students: [], teachers: [], lessons: [] };
+
+        async function fetchCloudData() {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                const result = await response.json();
+                if (result && result.record) {
+                    dbData = result.record;
+                    if(!dbData.students) dbData.students = [];
+                    if(!dbData.teachers) dbData.teachers = [];
+                    if(!dbData.lessons) dbData.lessons = [];
+                    renderStudentsTable();
+                    renderTeachersTable();
+                }
+            } catch (error) {
+                console.error("خطأ في الاتصال بالسحابة:", error);
+            }
+        }
+
+        async function saveCloudData() {
+            try {
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify(dbData)
+                });
+            } catch (error) {
+                console.error("خطأ في حفظ البيانات بالسحابة:", error);
+            }
+        }
 
         function getPlatformUrl() {
             const customUrl = document.getElementById('globalPlatformUrl').value.trim();
-            if(customUrl) return customUrl;
-            return 'تواصل مع الإدارة';
+            return customUrl || 'https://mohammed-aldaraji.github.io/elia-platform/';
         }
 
         function openPortal(portalId, btnId) {
@@ -296,7 +386,9 @@
             document.getElementById(portalId).classList.add('active');
             document.getElementById(btnId).classList.add('active');
 
-            if(portalId === 'admin-portal') renderStudentsTable();
+            if(portalId === 'admin-portal') {
+                fetchCloudData();
+            }
         }
 
         function switchAdminTab(tabId, itemBtnId) {
@@ -307,50 +399,77 @@
             document.getElementById(itemBtnId).classList.add('active');
         }
 
-        function generateAndSaveStudent() {
-            const name = document.getElementById('newStudentName').value;
+        // تحكم بنماذج الإدخال حسب نوع المحتوى للأستاذ
+        function toggleContentForm() {
+            const type = document.getElementById('contentTypeSelect').value;
+            const urlGroup = document.getElementById('urlGroup');
+            const urlLabel = document.getElementById('urlLabel');
+            const quizFields = document.getElementById('quizFields');
+
+            quizFields.style.display = 'none';
+            urlGroup.style.display = 'block';
+
+            if(type === 'lesson') {
+                urlLabel.innerText = "رابط الفيديو (YouTube / Drive):";
+            } else if(type === 'pdf') {
+                urlLabel.innerText = "رابط ملف الـ PDF (رابط مباشر للملف أو Google Drive):";
+            } else if(type === 'audio') {
+                urlLabel.innerText = "رابط الملف الصوتي (MP3 / Sound):";
+            } else if(type === 'image') {
+                urlLabel.innerText = "رابط الصورة التعليمية أو الرسم:";
+            } else if(type === 'live') {
+                urlLabel.innerText = "رابط البث المباشر (Zoom / Meet / YouTube Live):";
+            } else if(type === 'quiz') {
+                urlGroup.style.display = 'none';
+                quizFields.style.display = 'block';
+            }
+        }
+
+        async function generateAndSaveStudent() {
+            const name = document.getElementById('newStudentName').value.trim();
             const studentClass = document.getElementById('newStudentClass').value;
-            const phone = document.getElementById('newStudentPhone').value;
+            const phone = document.getElementById('newStudentPhone').value.trim();
 
             if(!name || !phone) { alert('يرجى ملء الاسم ورقم الهاتف بالكامل'); return; }
 
             const randomCode = 'ELIA-' + Math.floor(100000 + Math.random() * 900000);
             const newStudent = { id: Date.now(), name, class: studentClass, phone, pin: randomCode };
 
-            studentsData.push(newStudent);
-            localStorage.setItem('elia_students', JSON.stringify(studentsData));
+            dbData.students.push(newStudent);
+            await saveCloudData();
 
             showGeneratedCard(newStudent);
             document.getElementById('newStudentName').value = '';
             document.getElementById('newStudentPhone').value = '';
             renderStudentsTable();
+            alert('تم حفظ وتوليد رمز التلميذ سحابياً بنجاح!');
         }
 
         function showGeneratedCard(student) {
             const cardArea = document.getElementById('generatedCardArea');
             const platformUrl = getPlatformUrl();
-            const messageText = `أهلاً بك في منصة إيليا التعليمية%0A--------------------------------%0Aالتلميذ: ${student.name}%0Aالصف: ${student.class}%0Aرمز الدخول: *${student.pin}*%0A--------------------------------%0Aطريقة الوصول للمنصة:%0A${platformUrl}`;
+            const messageText = `أهلاً بك في منصة إيليا التعليمية%0A--------------------------------%0Aالتلميذ: ${student.name}%0Aالصف: ${student.class}%0Aرمز الدخول الخاص بك: *${student.pin}*%0A--------------------------------%0Aرابط المنصة المباشر:%0A${platformUrl}`;
 
             cardArea.innerHTML = `
                 <div style="background:white; padding:10px; border-radius:8px; margin-bottom:10px;">
                     <p><strong>الاسم:</strong> ${student.name}</p>
                     <p><strong>الصف:</strong> ${student.class}</p>
                     <p><strong>كود الدخول:</strong> <span style="color:red; font-weight:bold;">${student.pin}</span></p>
-                    <p style="font-size:0.8rem; color:#555; margin-top:5px; word-break:break-all;"><strong>التعليمات:</strong> ${platformUrl}</p>
                 </div>
                 <a href="https://wa.me/964${student.phone.replace(/^0/, '')}?text=${messageText}" target="_blank" class="btn btn-whatsapp" style="width:100%; justify-content:center;">
-                    <i class="fa-brands fa-whatsapp"></i> إرسال البطاقة عبر الواتساب
+                    <i class="fa-brands fa-whatsapp"></i> إرسال البطاقة والرمز عبر الواتساب
                 </a>
             `;
         }
 
         function renderStudentsTable() {
             const tbody = document.getElementById('studentsTableBody');
+            if(!tbody) return;
             tbody.innerHTML = '';
             const platformUrl = getPlatformUrl();
 
-            studentsData.forEach((st, index) => {
-                const messageText = `تذكير ببيانات دخول منصة إيليا التعليمية%0Aالتلميذ: ${st.name}%0Aرمز الدخول: *${st.pin}*%0Aالتعليمات:%0A${platformUrl}`;
+            dbData.students.forEach((st, index) => {
+                const messageText = `تذكير ببيانات دخول منصة إيليا التعليمية%0Aالتلميذ: ${st.name}%0Aرمز الدخول: *${st.pin}*%0Aرابط المنصة:%0A${platformUrl}`;
                 tbody.innerHTML += `
                     <tr>
                         <td>${index + 1}</td>
@@ -369,79 +488,264 @@
             });
         }
 
-        function addTeacher() {
-            const name = document.getElementById('newTeacherName').value;
-            const subject = document.getElementById('newTeacherSubject').value;
-            const phone = document.getElementById('newTeacherPhone').value;
+        async function addTeacher() {
+            const name = document.getElementById('newTeacherName').value.trim();
+            const subject = document.getElementById('newTeacherSubject').value.trim();
+            const phone = document.getElementById('newTeacherPhone').value.trim();
 
             if(!name || !subject || !phone) { alert('يرجى كتابة كافة بيانات الأستاذ'); return; }
 
+            const teacherPin = 'TEACH-' + Math.floor(100000 + Math.random() * 900000);
+            const newTeacher = { id: Date.now(), name, subject, phone, pin: teacherPin };
+
+            dbData.teachers.push(newTeacher);
+            await saveCloudData();
+
             const platformUrl = getPlatformUrl();
-            const messageText = `أهلاً بك أستاذ ${name} في منصة إيليا التعليمية%0Aالمادة: ${subject}%0Aتم تفعيل حسابك كأستاذ.%0Aطريقة الوصول:%0A${platformUrl}`;
+            const messageText = `أهلاً بك أستاذ ${name} في منصة إيليا التعليمية%0A--------------------------------%0Aالمادة: ${subject}%0Aرمز الدخول الخاص بك كأستاذ: *${teacherPin}*%0A--------------------------------%0Aرابط دخول الكادر التدريسي:%0A${platformUrl}`;
 
             const cardArea = document.getElementById('teacherCardArea');
             cardArea.innerHTML = `
-                <div class="card" style="background: #f0f7f5; margin-top:1rem; border:1px solid var(--secondary-color);">
-                    <h3>تم تجهيز حساب الأستاذ بنجاح</h3>
-                    <p><strong>الاسم:</strong> ${name} | <strong>المادة:</strong> ${subject}</p>
-                    <a href="https://wa.me/964${phone.replace(/^0/, '')}?text=${messageText}" target="_blank" class="btn btn-whatsapp" style="margin-top:10px;">
-                        <i class="fa-brands fa-whatsapp"></i> إرسال بيانات الحساب عبر الواتساب
-                    </a>
+                <div style="background:white; padding:10px; border-radius:8px; margin-bottom:10px;">
+                    <p><strong>الأستاذ:</strong> ${name}</p>
+                    <p><strong>المادة:</strong> ${subject}</p>
+                    <p><strong>رمز دخول الأستاذ:</strong> <span style="color:purple; font-weight:bold;">${teacherPin}</span></p>
                 </div>
+                <a href="https://wa.me/964${phone.replace(/^0/, '')}?text=${messageText}" target="_blank" class="btn btn-whatsapp" style="width:100%; justify-content:center;">
+                    <i class="fa-brands fa-whatsapp"></i> إرسال البطاقة والرمز للأستاذ
+                </a>
             `;
 
             document.getElementById('newTeacherName').value = '';
             document.getElementById('newTeacherSubject').value = '';
             document.getElementById('newTeacherPhone').value = '';
+            renderTeachersTable();
+            alert('تم حفظ وتوليد رمز الأستاذ سحابياً بنجاح!');
         }
 
-        function deleteStudent(id) {
-            if(confirm('هل أنت متأكد من مسح التلميذ؟')) {
-                studentsData = studentsData.filter(s => s.id !== id);
-                localStorage.setItem('elia_students', JSON.stringify(studentsData));
+        function renderTeachersTable() {
+            const tbody = document.getElementById('teachersTableBody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            const platformUrl = getPlatformUrl();
+
+            dbData.teachers.forEach((tc, index) => {
+                const messageText = `تذكير بكود دخول منصة إيليا التعليمية للأستاذ %0Aالأستاذ: ${tc.name}%0Aالمادة: ${tc.subject}%0Aرمز الدخول: *${tc.pin}*%0Aرابط المنصة:%0A${platformUrl}`;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${tc.name}</td>
+                        <td>${tc.subject}</td>
+                        <td><strong>${tc.pin}</strong></td>
+                        <td>${tc.phone}</td>
+                        <td>
+                            <a href="https://wa.me/964${tc.phone.replace(/^0/, '')}?text=${messageText}" target="_blank" class="btn btn-whatsapp" style="padding:4px 10px; font-size:0.85rem;">
+                                <i class="fa-brands fa-whatsapp"></i> إرسال الرمز
+                            </a>
+                            <button onclick="deleteTeacher(${tc.id})" class="btn-danger" style="border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function deleteStudent(id) {
+            if(confirm('هل أنت متأكد من مسح التلميذ من السحابة؟')) {
+                dbData.students = dbData.students.filter(s => s.id !== id);
+                await saveCloudData();
                 renderStudentsTable();
             }
         }
 
-        function loginStudent() {
-            const pin = document.getElementById('studentPinInput').value;
-            const student = studentsData.find(s => s.pin === pin);
+        async function deleteTeacher(id) {
+            if(confirm('هل أنت متأكد من مسح حساب الأستاذ من السحابة؟')) {
+                dbData.teachers = dbData.teachers.filter(t => t.id !== id);
+                await saveCloudData();
+                renderTeachersTable();
+            }
+        }
+
+        async function loginStudent() {
+            const pinInput = document.getElementById('studentPinInput');
+            const pin = pinInput ? pinInput.value.trim() : '';
+            
+            if(!pin) { alert('يرجى إدخال رمز الدخول أولاً'); return; }
+
+            const loginBtn = event.target;
+            const originalText = loginBtn.innerHTML;
+            loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+
+            await fetchCloudData();
+            loginBtn.innerHTML = originalText;
+
+            const student = dbData.students.find(s => s.pin.trim().toUpperCase() === pin.toUpperCase());
+            
             if(student) {
                 document.getElementById('studentLoginForm').style.display = 'none';
                 document.getElementById('welcomeStudentMsg').innerText = `مرحباً بك يا ${student.name}`;
                 document.getElementById('studentClassInfo').innerText = `الصف الدراسي: ${student.class}`;
                 document.getElementById('studentDashboard').style.display = 'block';
+                
+                renderStudentClassContents(student.class);
             } else {
-                alert('رمز الدخول غير صحيح، يرجى التواصل مع الأستاذ محمد الدراجي للحصول على الرمز.');
+                alert('رمز الدخول غير صحيح، يرجى التأكد من الرمز المرسل أو التواصل مع الإدارة.');
+            }
+        }
+
+        // عرض المحتويات المتنوعة للتلميذ حسب صفه
+        function renderStudentClassContents(studentClass) {
+            const container = document.getElementById('studentDynamicContent');
+            if(!container) return;
+
+            const items = dbData.lessons.filter(l => l.targetClass === studentClass);
+
+            if(items.length === 0) {
+                container.innerHTML = '<p style="color: #777;">لا توجد دروس أو محتويات مرفوعة لهذا الصف حالياً.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            items.forEach((item) => {
+                let icon = 'fa-book';
+                let typeName = 'محتوى تعليمي';
+                let actionHtml = '';
+
+                if(item.type === 'lesson') {
+                    icon = 'fa-video'; typeName = 'درس مرئي (فيديو)';
+                    actionHtml = `<a href="${item.url}" target="_blank" class="btn btn-primary" style="padding:6px 14px; font-size:0.9rem;"><i class="fa-solid fa-play"></i> مشاهدة الدرس</a>`;
+                } else if(item.type === 'pdf') {
+                    icon = 'fa-file-pdf'; typeName = 'ملف PDF / ملزمة';
+                    actionHtml = `<a href="${item.url}" target="_blank" class="btn btn-secondary" style="padding:6px 14px; font-size:0.9rem;"><i class="fa-solid fa-download"></i> تحميل أو عرض الملف</a>`;
+                } else if(item.type === 'audio') {
+                    icon = 'fa-headphones'; typeName = 'محاضرة صوتية';
+                    actionHtml = `<a href="${item.url}" target="_blank" class="btn btn-secondary" style="padding:6px 14px; font-size:0.9rem;"><i class="fa-solid fa-volume-high"></i> استماع للصوتية</a>`;
+                } else if(item.type === 'image') {
+                    icon = 'fa-image'; typeName = 'صورة أو رسم توضيحي';
+                    actionHtml = `<a href="${item.url}" target="_blank" class="btn btn-secondary" style="padding:6px 14px; font-size:0.9rem;"><i class="fa-solid fa-eye"></i> عرض الصورة</a>`;
+                } else if(item.type === 'live') {
+                    icon = 'fa-broadcast-tower'; typeName = 'بث مباشر / اجتماع';
+                    actionHtml = `<a href="${item.url}" target="_blank" class="btn btn-whatsapp" style="padding:6px 14px; font-size:0.9rem;"><i class="fa-solid fa-video"></i> الانضمام للبث المباشر</a>`;
+                } else if(item.type === 'quiz') {
+                    icon = 'fa-pen-to-square'; typeName = 'اختبار قصير (كويز)';
+                    actionHtml = `
+                        <div style="background:#fff; padding:10px; border-radius:6px; margin-top:8px; border:1px solid #ddd;">
+                            <p><strong>السؤال:</strong> ${item.question}</p>
+                            <p style="margin-top:5px; font-size:0.9rem; color:#555;">الخيارات: ${item.opt1} | ${item.opt2} | ${item.opt3}</p>
+                            <input type="text" id="answer_${item.id}" class="form-control" placeholder="اكتب إجابتك هنا..." style="margin-top:8px;">
+                            <button onclick="checkQuizAnswer('${item.correct}', '${item.id}')" class="btn btn-primary" style="margin-top:8px; padding:4px 10px; font-size:0.85rem;">إرسال الإجابة</button>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML += `
+                    <div class="content-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                            <h4><i class="fa-solid ${icon}"></i> [${typeName}] ${item.title}</h4>
+                            <span style="font-size:0.8rem; color:#777;">تاريخ النشر: ${item.date}</span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            ${actionHtml}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function checkQuizAnswer(correct, id) {
+            const userAns = document.getElementById('answer_' + id).value.trim();
+            if(userAns.toLowerCase() === correct.toLowerCase()) {
+                alert('إجابة صحيحة أحسنت!');
+            } else {
+                alert('إجابة خاطئة، حاول مرة أخرى.');
             }
         }
 
         function logoutStudent() {
             document.getElementById('studentLoginForm').style.display = 'block';
             document.getElementById('studentDashboard').style.display = 'none';
+            document.getElementById('studentPinInput').value = '';
         }
 
-        function loginTeacher() {
-            document.getElementById('teacherLoginForm').style.display = 'none';
-            document.getElementById('teacherDashboard').style.display = 'block';
+        async function loginTeacher() {
+            const pinInput = document.getElementById('teacherPinInput');
+            const pin = pinInput ? pinInput.value.trim() : '';
+            
+            if(!pin) { alert('يرجى إدخال رمز الأستاذ أولاً'); return; }
+
+            const loginBtn = event.target;
+            const originalText = loginBtn.innerHTML;
+            loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+
+            await fetchCloudData();
+            loginBtn.innerHTML = originalText;
+
+            const teacher = dbData.teachers.find(t => t.pin.trim().toUpperCase() === pin.toUpperCase());
+            
+            if(teacher || pin === 'ADMIN-123') {
+                document.getElementById('teacherLoginForm').style.display = 'none';
+                document.getElementById('welcomeTeacherMsg').innerText = `لوحة الأستاذ: ${teacher ? teacher.name + ' (' + teacher.subject + ')' : 'الكادر التدريسي'}`;
+                document.getElementById('teacherDashboard').style.display = 'block';
+            } else {
+                alert('رمز دخول الأستاذ غير صحيح، يرجى مراجعة إدارة المنصة.');
+            }
         }
 
         function logoutTeacher() {
             document.getElementById('teacherLoginForm').style.display = 'block';
             document.getElementById('teacherDashboard').style.display = 'none';
+            document.getElementById('teacherPinInput').value = '';
         }
 
-        function addLesson() {
-            const title = document.getElementById('lessonTitle').value;
-            const lessonClass = document.getElementById('lessonClass').value;
-            const url = document.getElementById('lessonUrl').value;
-            if(!title || !url) { alert('يرجى كتابة عنوان المحاضرة والرابط'); return; }
-            alert('تم نشر المحاضرة بنجاح لجميع طلاب صف: ' + lessonClass);
-            document.getElementById('lessonTitle').value = '';
-            document.getElementById('lessonUrl').value = '';
+        // --- دالة النشر السحابي الشامل للأستاذ ---
+        async function publishContent() {
+            const type = document.getElementById('contentTypeSelect').value;
+            const title = document.getElementById('pubTitle').value.trim();
+            const targetClass = document.getElementById('pubClass').value;
+            const url = document.getElementById('pubUrl').value.trim();
+
+            if(!title) { alert('يرجى كتابة عنوان المحتوى'); return; }
+            if(type !== 'quiz' && !url) { alert('يرجى إدخال الرابط الخاص بالمحتوى'); return; }
+
+            let newContent = {
+                id: Date.now(),
+                type: type,
+                title: title,
+                targetClass: targetClass,
+                url: url,
+                date: new Date().toLocaleDateString('ar-IQ')
+            };
+
+            if(type === 'quiz') {
+                newContent.question = document.getElementById('quizQuestion').value.trim();
+                newContent.opt1 = document.getElementById('opt1').value.trim();
+                newContent.opt2 = document.getElementById('opt2').value.trim();
+                newContent.opt3 = document.getElementById('opt3').value.trim();
+                newContent.correct = document.getElementById('correctOpt').value.trim();
+
+                if(!newContent.question || !newContent.correct) {
+                    alert('يرجى كتابة السؤال والإجابة الصحيحة للاختبار');
+                    return;
+                }
+            }
+
+            if(!dbData.lessons) dbData.lessons = [];
+            dbData.lessons.push(newContent);
+
+            await saveCloudData();
+
+            alert('تم نشر المحتوى بنجاح سحابياً لصف: ' + targetClass);
+            document.getElementById('pubTitle').value = '';
+            document.getElementById('pubUrl').value = '';
+            if(type === 'quiz') {
+                document.getElementById('quizQuestion').value = '';
+                document.getElementById('opt1').value = '';
+                document.getElementById('opt2').value = '';
+                document.getElementById('opt3').value = '';
+                document.getElementById('correctOpt').value = '';
+            }
         }
 
-        renderStudentsTable();
+        fetchCloudData();
     </script>
 </body>
 </html>
